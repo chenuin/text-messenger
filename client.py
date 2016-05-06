@@ -50,7 +50,7 @@ class NetClient(object):
                 
                 self.socket.send(strEncode(command))
                 recvData = self.socket.recv(1024)
-                print(recvData)
+                print(strDecode(recvData))
                 if command[:6] == 'quit':
                     break
         else:
