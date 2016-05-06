@@ -3,6 +3,11 @@
 import socket, threading
 from sys import stderr
 
+clients = {}
+chatwith = {}
+friend = {}
+name = {'amy', 'john'}
+
 def strDecode(string):
     bytes_str = string.decode('utf-8', "replace")
     return (bytes_str)
@@ -35,7 +40,7 @@ class ClientThread(threading.Thread):
         print ("Connection from : "+ip+":"+str(port))
 
         # send to client
-        msg = "Welcome to the server"
+        msg = "Welcome to the Message program"
         msg = strEncode(msg)
         clientsock.send(msg)
         
@@ -43,35 +48,57 @@ class ClientThread(threading.Thread):
         inputName = self.csocket.recv(1024)
         print ("Client(%s:%s) sent : %s"%(self.ip, str(self.port), inputName))
         
-        data = self.checkAccount()
-        data = strEncode(data)
-        clientsock.send(data)
-
-        #data = "dummydata"
-        while len(data):
-            data = self.csocket.recv(2048)
-            data = strDecode(data)
-            print ("Client(%s:%s) sent : %s"%(self.ip, str(self.port), data))
-
+        # check login
+        log = self.checkAccount()
+        # send message "Success" or "Fail" to client
+        b_log = strEncode(log)
+        clientsock.send(b_log)
+        
+        if log == "Success":
+            while True:
+                command = self.csocket.recv(2048)
+                data = strDecode(command)
+                if data[:6] == 'friend':
+                    self.friendList(data)
+                elif data[:4] == 'quit':
+                    data = strEncode('Good bye, %s'%(self.name))
+                    self.csocket.send(data)
+                    break
+                else:
+                    data = strEncode('error command')
+                    self.csocket.send(data)
+                
+            del clients[self.name]
+            print (color.red+"[OFF] %s Logout"% (self.name)+color.end)
+        else:
+            if self.name in clients:
+                del clients[self.name]
+                
         print ("Client at (%s:%s) disconnected..."%(self.ip, str(self.port)))
+
     def checkAccount(self):
-        name = ['amy', 'john']
-        clients = []
-		
         inputName = self.csocket.recv(1024)
-        inputName = strDecode(inputName)
+        inputName = self.name = strDecode(inputName)
         print ("Client(%s:%s) username : %s"%(self.ip, str(self.port), inputName))
         inputPWD = self.csocket.recv(1024)
         inputPWD = strDecode(inputPWD)
         print ("Client(%s:%s) password : %s"%(self.ip, str(self.port), inputPWD))
         
         if inputName in name:
-            print(color.green+'user: %s Login Success'%(inputName)+color.end)
+            print(color.green+'[ON] %s Login Success'%(inputName)+color.end)
+            clients[self.name] = self.csocket
             return "Success"
         else:
-            print(color.red+'user: %s Login Fail'%(inputName)+color.end)
+            print(color.red+'[ERR] %s Login Fail'%(inputName)+color.end)
             return "Fail"
-		
+
+    def friendList(self, data):
+        print(data)
+        if self.name in friend:
+            data = strEncode("yes")
+        else:
+            data = strEncode("none")
+        self.csocket.send(data)
 
 if __name__ == "__main__":
     host = "0.0.0.0"
