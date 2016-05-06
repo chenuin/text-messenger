@@ -3,10 +3,11 @@
 import socket, threading
 from sys import stderr
 
-clients = {}
-chatwith = {}
-friend = {}
+clients = {} # 紀錄client socket連線
+chatwith = {} # 紀錄client訊息對象
+friend = {} # 紀錄client friend list
 name = {'amy', 'john'}
+pwd = {'amy':'123', 'john':'456'}
 
 def strDecode(string):
     bytes_str = string.decode('utf-8', "replace")
@@ -61,7 +62,7 @@ class ClientThread(threading.Thread):
                 if data[:6] == 'friend':
                     self.friendList(data)
                 elif data[:4] == 'quit':
-                    data = strEncode('Good bye, %s'%(self.name))
+                    data = strEncode(color.blue+'Good bye, %s'%(self.name)+color.end)
                     self.csocket.send(data)
                     break
                 else:
@@ -84,7 +85,7 @@ class ClientThread(threading.Thread):
         inputPWD = strDecode(inputPWD)
         print ("Client(%s:%s) password : %s"%(self.ip, str(self.port), inputPWD))
         
-        if inputName in name:
+        if (inputName in name) and (pwd[inputName] == inputPWD):
             print(color.green+'[ON] %s Login Success'%(inputName)+color.end)
             clients[self.name] = self.csocket
             return "Success"
@@ -94,10 +95,22 @@ class ClientThread(threading.Thread):
 
     def friendList(self, data):
         print(data)
-        if self.name in friend:
-            data = strEncode("yes")
-        else:
-            data = strEncode("none")
+        if data[7:11] == "list":
+            if self.name in friend:
+                print (friend[self.name])
+                data = strEncode(friend[self.name])
+            else:
+                data = strEncode("none")
+        elif data[7:10] == "add":
+            if ~(self.name in friend):
+                friend[self.name] = ""
+            friend[self.name] += data[11:]
+            friend[self.name] += ";"
+            tmp = data[11:]+" added into the friend list"
+            data = strEncode(tmp)
+        elif data[7:9] == "rm":
+            tmp = data[10:]+" removed from the friend list"
+            data = strEncode(tmp)
         self.csocket.send(data)
 
 if __name__ == "__main__":
