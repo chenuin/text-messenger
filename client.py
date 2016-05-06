@@ -27,6 +27,20 @@ def strEncode(string):
     bytes_str = string.encode('UTF-8')
     return (bytes_str)
 
+def printStatus(string):
+    strON, strOFF = string.split(";")
+
+    onList = strON.split(",")
+    offList = strOFF.split(",")
+    for i in range(0, len(onList), 1):
+        if onList[i] == "":
+            break;
+        print(" {0:10} : online".format(onList[i]))
+    for i in range(0, len(offList), 1):
+        if offList[i] == "":
+            break;
+        print(" {0:10} : offline".format(offList[i]))
+
 class NetClient(object):  
     def tcpclient(self):  
         clientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -50,9 +64,14 @@ class NetClient(object):
                 
                 self.socket.send(strEncode(command))
                 recvData = self.socket.recv(1024)
-                print(strDecode(recvData))
-                if command[:6] == 'quit':
+
+                if command == 'friend list':
+                    printStatus(strDecode(recvData))
+                elif command == 'quit':
+                    print(strDecode(recvData))
                     break
+                else:
+                    print(strDecode(recvData))
         else:
             print(color.red+'Login Fail'+color.end)
 
