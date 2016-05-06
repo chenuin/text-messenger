@@ -36,19 +36,42 @@ class ClientThread(threading.Thread):
 
         # send to client
         msg = "Welcome to the server"
-        b_msg = msg.encode('UTF-8')
-        clientsock.send(b_msg)
+        msg = strEncode(msg)
+        clientsock.send(msg)
+        
+        # Client reply
+        inputName = self.csocket.recv(1024)
+        print ("Client(%s:%s) sent : %s"%(self.ip, str(self.port), inputName))
+        
+        data = self.checkAccount()
+        data = strEncode(data)
+        clientsock.send(data)
 
-        data = "dummydata"
-
+        #data = "dummydata"
         while len(data):
             data = self.csocket.recv(2048)
-            #print ("Client(%s:%s) sent : %s"%(self.ip, str(self.port), data))
-            #b_msg = "You sent me : ".encode('UTF-8')
-            #b_msg += data
-            #self.csocket.send(b_msg)
+            data = strDecode(data)
+            print ("Client(%s:%s) sent : %s"%(self.ip, str(self.port), data))
 
         print ("Client at (%s:%s) disconnected..."%(self.ip, str(self.port)))
+    def checkAccount(self):
+        name = ['amy', 'john']
+        clients = []
+		
+        inputName = self.csocket.recv(1024)
+        inputName = strDecode(inputName)
+        print ("Client(%s:%s) username : %s"%(self.ip, str(self.port), inputName))
+        inputPWD = self.csocket.recv(1024)
+        inputPWD = strDecode(inputPWD)
+        print ("Client(%s:%s) password : %s"%(self.ip, str(self.port), inputPWD))
+        
+        if inputName in name:
+            print(color.green+'user: %s Login Success'%(inputName)+color.end)
+            return "Success"
+        else:
+            print(color.red+'user: %s Login Fail'%(inputName)+color.end)
+            return "Fail"
+		
 
 if __name__ == "__main__":
     host = "0.0.0.0"
