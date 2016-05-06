@@ -34,7 +34,7 @@ class NetClient(object):
         clientSock.connect(('localhost', 9999))  
 
         # send to server
-        msg = strEncode("This is send data from client")
+        msg = strEncode("Data send from client")
         sendDataLen = clientSock.send(msg)
         #print ("sendDataLen: {}".format(sendDataLen))
         
@@ -43,11 +43,21 @@ class NetClient(object):
         print ("%s"%(recvData))
         
         # login
-        self.login()
-        
-        # stop sending data
-        sendDataLen = self.socket.send(b'')
+        if self.login():
+            print(color.green+'Login Success'+color.end)
+            while True:
+                command = input("> ")
+                
+                self.socket.send(strEncode(command))
+                recvData = self.socket.recv(1024)
+                print(recvData)
+                if command[:6] == 'quit':
+                    break
+        else:
+            print(color.red+'Login Fail'+color.end)
+
         clientSock.close()
+
     def login(self):
         user = input('login: ')
         sendDataLen = self.socket.send(strEncode(user))
@@ -58,9 +68,9 @@ class NetClient(object):
         recvData = self.socket.recv(1024)
         recvData = strDecode(recvData)
         if recvData == "Success":
-            print(color.green+'Login Success'+color.end)
+            return 1
         else:
-            print(color.red+'Login Fail'+color.end)
+            return 0
           
 if __name__ == "__main__":  
     netClient = NetClient()  
