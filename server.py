@@ -6,8 +6,8 @@ from sys import stderr
 clients = {} # 紀錄client socket連線
 chatwith = {} # 紀錄client訊息對象
 friend = {} # 紀錄client friend list
-name = {'amy', 'john'}
-pwd = {'amy':'123', 'john':'456'}
+name = {'amy', 'john', 'tom'}
+pwd = {'amy':'123', 'john':'456', 'tom':'789'}
 
 def strDecode(string):
     bytes_str = string.decode('utf-8', "replace")
@@ -27,6 +27,45 @@ class color:
     purple ="\033[35m"
     cyan =  "\033[36m"
     grey =  "\033[37m"
+    
+def splitList(string):
+    nameList = string.split(";")
+    tmpList = {}
+    for i in range(0, len(nameList), 1):
+        #print(nameList[i])
+        result = checkStatus(nameList[i])
+        #print (result)
+        if result in tmpList:
+            tmpList[result] += ","
+            tmpList[result] += nameList[i]
+        else:
+            tmpList[result] = nameList[i]
+	
+    if 'on' not in tmpList:
+        tmpList['on'] = ""
+    if 'off' not in tmpList:
+        tmpList['off'] = ""
+    strList = tmpList['on']+';'+tmpList['off']
+    return strList
+
+def checkStatus(name):
+    if name in clients:
+        return 'on'
+    else:
+        return 'off'
+
+def rmName(string, target):
+    name = string.split(";")
+    strList = ""
+    for i in range(0, len(name), 1):
+        if name[i] != target:
+            if len(strList) == 0:
+                strList = name[i]
+            else:
+                strList += ";"
+                strList += name[i]           
+    print (strList)
+    return strList
 
 class ClientThread(threading.Thread):
 
@@ -94,23 +133,33 @@ class ClientThread(threading.Thread):
             return "Fail"
 
     def friendList(self, data):
-        print(data)
-        if data[7:11] == "list":
+        print(self.name +' send command: '+data)
+        if data[7:11] == "list":    # friend list
             if self.name in friend:
-                print (friend[self.name])
-                data = strEncode(friend[self.name])
+                data = splitList(friend[self.name])
+                #print (friend[self.name])
+                data = strEncode(data)
             else:
                 data = strEncode("none")
-        elif data[7:10] == "add":
-            if ~(self.name in friend):
-                friend[self.name] = ""
-            friend[self.name] += data[11:]
-            friend[self.name] += ";"
+        elif data[7:10] == "add":   # friend add
+            if self.name in friend:
+                friend[self.name] += ";"
+                friend[self.name] += data[11:]
+            else:
+                friend[self.name] = data[11:]
+
             tmp = data[11:]+" added into the friend list"
             data = strEncode(tmp)
-        elif data[7:9] == "rm":
-            tmp = data[10:]+" removed from the friend list"
+        elif data[7:9] == "rm":     # friend rm
+            if self.name in friend:
+                strTmp = rmName(friend[self.name], data[10:])
+                friend[self.name] = strTmp
+                tmp = data[10:]+" removed from the friend list"
+            else:
+                tmp = "You friend list is empty"
             data = strEncode(tmp)
+        else:
+            data = strEncode('error command')
         self.csocket.send(data)
 
 if __name__ == "__main__":
