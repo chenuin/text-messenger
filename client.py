@@ -32,6 +32,7 @@ def printStatus(string):
         print ("none")
     else:
         strON, strOFF = string.split(";")
+<<<<<<< HEAD
 
         onList = strON.split(",")
         offList = strOFF.split(",")
@@ -60,13 +61,30 @@ def Recv(sock, test):
         if data == color.blue+'Good bye'+color.end:
             sock.close()
             break
+=======
+
+        onList = strON.split(",")
+        offList = strOFF.split(",")
+        for i in range(0, len(onList), 1):
+            if onList[i] == "":
+                break;
+            print(" {0:10} : online".format(onList[i]))
+        for i in range(0, len(offList), 1):
+            if offList[i] == "":
+                break;
+            print(" {0:10} : offline".format(offList[i]))
+>>>>>>> cdcc88566c13692a4dabaac81f7c40025d280c37
 
 class NetClient(object):  
     def __init__(self, clientSock):
         self.socket = clientSock
 
+<<<<<<< HEAD
     def tcpclient(self):
         threads = []
+=======
+    def tcpclient(self):  
+>>>>>>> cdcc88566c13692a4dabaac81f7c40025d280c37
         # send to server
         msg = strEncode("Data send from client")
         sendDataLen = self.socket.send(msg)
@@ -79,6 +97,7 @@ class NetClient(object):
         # login
         if self.login():
             print(color.green+'Login Success'+color.end)
+<<<<<<< HEAD
             
             chat = threading.Thread(target = Send, args = (self.socket,None))
             threads.append(chat) 
@@ -87,6 +106,21 @@ class NetClient(object):
             for i in range(len(threads)):
                 threads[i].start()
             threads[0].join()
+=======
+            while True:
+                command = input("> ")
+                
+                self.socket.send(strEncode(command))
+                recvData = self.socket.recv(1024)
+
+                if command == 'friend list':
+                    printStatus(strDecode(recvData))
+                elif command == 'exit':
+                    print(strDecode(recvData))
+                    break
+                else:
+                    print(strDecode(recvData))
+>>>>>>> cdcc88566c13692a4dabaac81f7c40025d280c37
         else:
             print(color.red+'Login Fail'+color.end)
 
