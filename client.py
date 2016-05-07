@@ -28,33 +28,35 @@ def strEncode(string):
     return (bytes_str)
 
 def printStatus(string):
-    strON, strOFF = string.split(";")
+    if string == "none":
+        print ("none")
+    else:
+        strON, strOFF = string.split(";")
 
-    onList = strON.split(",")
-    offList = strOFF.split(",")
-    for i in range(0, len(onList), 1):
-        if onList[i] == "":
-            break;
-        print(" {0:10} : online".format(onList[i]))
-    for i in range(0, len(offList), 1):
-        if offList[i] == "":
-            break;
-        print(" {0:10} : offline".format(offList[i]))
+        onList = strON.split(",")
+        offList = strOFF.split(",")
+        for i in range(0, len(onList), 1):
+            if onList[i] == "":
+                break;
+            print(" {0:10} : online".format(onList[i]))
+        for i in range(0, len(offList), 1):
+            if offList[i] == "":
+                break;
+            print(" {0:10} : offline".format(offList[i]))
 
 class NetClient(object):  
-    def tcpclient(self):  
-        clientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    def __init__(self, clientSock):
         self.socket = clientSock
-        clientSock.connect(('localhost', 9999))  
 
+    def tcpclient(self):  
         # send to server
         msg = strEncode("Data send from client")
-        sendDataLen = clientSock.send(msg)
+        sendDataLen = self.socket.send(msg)
         #print ("sendDataLen: {}".format(sendDataLen))
         
         # Server reply(welcome)
-        recvData = clientSock.recv(1024)
-        print ("%s"%(recvData))
+        recvData = self.socket.recv(1024)
+        print ("%s"%strDecode(recvData))
         
         # login
         if self.login():
@@ -67,7 +69,7 @@ class NetClient(object):
 
                 if command == 'friend list':
                     printStatus(strDecode(recvData))
-                elif command == 'quit':
+                elif command == 'exit':
                     print(strDecode(recvData))
                     break
                 else:
@@ -91,6 +93,9 @@ class NetClient(object):
         else:
             return 0
           
-if __name__ == "__main__":  
-    netClient = NetClient()  
+if __name__ == "__main__":
+    clientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    clientSock.connect(('localhost', 9999))
+
+    netClient = NetClient(clientSock)
     netClient.tcpclient()  
