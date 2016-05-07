@@ -4,7 +4,7 @@
 import sys  
 #reload(sys)  
 #sys.setdefaultencoding('utf-8')  
-  
+import threading
 import socket
 import getpass
 
@@ -28,54 +28,69 @@ def strEncode(string):
     return (bytes_str)
 
 def printStatus(string):
-    strON, strOFF = string.split(";")
+    if string == "none":
+        print ("none")
+    else:
+        strON, strOFF = string.split(";")
 
-    onList = strON.split(",")
-    offList = strOFF.split(",")
-    for i in range(0, len(onList), 1):
-        if onList[i] == "":
-            break;
-        print(" {0:10} : online".format(onList[i]))
-    for i in range(0, len(offList), 1):
-        if offList[i] == "":
-            break;
-        print(" {0:10} : offline".format(offList[i]))
+        onList = strON.split(",")
+        offList = strOFF.split(",")
+        for i in range(0, len(onList), 1):
+            if onList[i] == "":
+                break;
+            print(" {0:10} : online".format(onList[i]))
+        for i in range(0, len(offList), 1):
+            if offList[i] == "":
+                break;
+            print(" {0:10} : offline".format(offList[i]))
+
+def Send(sock, test):
+    while True:
+        data = input('> ')
+        data = strEncode(data)
+        sock.send(data)
+        if strDecode(data) == 'exit':
+            break
+
+def Recv(sock, test):
+    while True:
+        data = sock.recv(1024)
+        data = strDecode(data)
+        print (data)
+        if data == color.blue+'Good bye'+color.end:
+            sock.close()
+            break
 
 class NetClient(object):  
-    def tcpclient(self):  
-        clientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    def __init__(self, clientSock):
         self.socket = clientSock
-        clientSock.connect(('localhost', 9999))  
 
+    def tcpclient(self):
+        threads = []
         # send to server
         msg = strEncode("Data send from client")
-        sendDataLen = clientSock.send(msg)
+        sendDataLen = self.socket.send(msg)
         #print ("sendDataLen: {}".format(sendDataLen))
         
         # Server reply(welcome)
-        recvData = clientSock.recv(1024)
-        print ("%s"%(recvData))
+        recvData = self.socket.recv(1024)
+        print ("%s"%strDecode(recvData))
         
         # login
         if self.login():
             print(color.green+'Login Success'+color.end)
-            while True:
-                command = input("> ")
-                
-                self.socket.send(strEncode(command))
-                recvData = self.socket.recv(1024)
-
-                if command == 'friend list':
-                    printStatus(strDecode(recvData))
-                elif command == 'quit':
-                    print(strDecode(recvData))
-                    break
-                else:
-                    print(strDecode(recvData))
+            
+            chat = threading.Thread(target = Send, args = (self.socket,None))
+            threads.append(chat) 
+            chat = threading.Thread(target = Recv, args = (self.socket,None))
+            threads.append(chat)
+            for i in range(len(threads)):
+                threads[i].start()
+            threads[0].join()
         else:
             print(color.red+'Login Fail'+color.end)
 
-        clientSock.close()
+        #clientSock.close()
 
     def login(self):
         user = input('login: ')
@@ -91,6 +106,9 @@ class NetClient(object):
         else:
             return 0
           
-if __name__ == "__main__":  
-    netClient = NetClient()  
+if __name__ == "__main__":
+    clientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    clientSock.connect(('localhost', 9999))
+
+    netClient = NetClient(clientSock)
     netClient.tcpclient()  
