@@ -46,6 +46,7 @@ def splitList(string):
     if 'off' not in tmpList:
         tmpList['off'] = ""
     strList = tmpList['on']+';'+tmpList['off']
+    #print (strList)
     return strList
 
 def checkStatus(name):
@@ -64,7 +65,6 @@ def rmName(string, target):
             else:
                 strList += ";"
                 strList += name[i]           
-    print (strList)
     return strList
 
 class ClientThread(threading.Thread):
@@ -100,12 +100,14 @@ class ClientThread(threading.Thread):
                 data = strDecode(command)
                 if data[:6] == 'friend':
                     self.friendList(data)
-                elif data[:4] == 'quit':
-                    data = strEncode(color.blue+'Good bye, %s'%(self.name)+color.end)
+                elif data[:4] == 'send':
+                    self.msgSend(data)
+                elif data[:4] == 'exit':
+                    data = strEncode(color.blue+'Good bye'+color.end)
                     self.csocket.send(data)
                     break
                 else:
-                    data = strEncode('error command')
+                    data = strEncode('Error command')
                     self.csocket.send(data)
                 
             del clients[self.name]
@@ -155,11 +157,24 @@ class ClientThread(threading.Thread):
                 strTmp = rmName(friend[self.name], data[10:])
                 friend[self.name] = strTmp
                 tmp = data[10:]+" removed from the friend list"
+                if len(friend[self.name]) == 0:
+                    del friend[self.name]
             else:
                 tmp = "You friend list is empty"
             data = strEncode(tmp)
         else:
-            data = strEncode('error command')
+            data = strEncode('Error command')
+        self.csocket.send(data)
+
+    def msgSend(self, data):
+        print(self.name +' send command: '+data)
+        command, target, msg = data.split()
+        if (target in name) and (target in clients):
+            data = strEncode(msg)
+        elif (target in name) and (target not in clients):
+            data = strEncode("leave message")
+        else:
+            data = strEncode(target+" is not exist")
         self.csocket.send(data)
 
 if __name__ == "__main__":
