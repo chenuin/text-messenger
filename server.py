@@ -2,10 +2,14 @@
 
 import socket, threading
 from sys import stderr
+from time import localtime, strftime
 
 clients = {} # 紀錄client socket連線
 chatwith = {} # 紀錄client訊息對象
 friend = {} # 紀錄client friend list
+unsend = []
+unsend_msg = {}
+
 name = {'amy', 'john', 'tom'}
 pwd = {'amy':'123', 'john':'456', 'tom':'789'}
 
@@ -45,7 +49,7 @@ def splitList(string):
         tmpList['on'] = ""
     if 'off' not in tmpList:
         tmpList['off'] = ""
-    strList = tmpList['on']+';'+tmpList['off']
+    strList = "::" + tmpList['on'] + ';' + tmpList['off']
     #print (strList)
     return strList
 
@@ -67,7 +71,7 @@ def rmName(string, target):
                 strList += name[i]           
     return strList
 
-class ClientThread(threading.Thread):
+class ServerThread(threading.Thread):
 
     def __init__(self,ip,port,clientsocket):
         threading.Thread.__init__(self)
@@ -82,7 +86,7 @@ class ClientThread(threading.Thread):
         # send to client
         msg = "Welcome to the Message program"
         msg = strEncode(msg)
-        clientsock.send(msg)
+        self.csocket.send(msg)
         
         # Client reply
         inputName = self.csocket.recv(1024)
@@ -92,16 +96,22 @@ class ClientThread(threading.Thread):
         log = self.checkAccount()
         # send message "Success" or "Fail" to client
         b_log = strEncode(log)
-        clientsock.send(b_log)
+        self.csocket.send(b_log)
         
         if log == "Success":
             while True:
                 command = self.csocket.recv(2048)
                 data = strDecode(command)
+                print(self.name +' send command: '+data)
+
                 if data[:6] == 'friend':
                     self.friendList(data)
+                elif data[:8] == 'sendfile':
+                    self.fileSend(data)
                 elif data[:4] == 'send':
                     self.msgSend(data)
+                elif data == 'check msg':
+                    self.msgUnsend()
                 elif data[:4] == 'exit':
                     data = strEncode(color.blue+'Good bye'+color.end)
                     self.csocket.send(data)
@@ -135,7 +145,6 @@ class ClientThread(threading.Thread):
             return "Fail"
 
     def friendList(self, data):
-        print(self.name +' send command: '+data)
         if data[7:11] == "list":    # friend list
             if self.name in friend:
                 data = splitList(friend[self.name])
@@ -167,15 +176,51 @@ class ClientThread(threading.Thread):
         self.csocket.send(data)
 
     def msgSend(self, data):
-        print(self.name +' send command: '+data)
         command, target, msg = data.split()
-        if (target in name) and (target in clients):
-            data = strEncode(msg)
-        elif (target in name) and (target not in clients):
-            data = strEncode("leave message")
+        timer = strftime("%Y-%m-%d %H:%M:%S", localtime())
+        if (target in name) and (target in clients):       # online message
+            msg1 = "[{} from {}] ".format(timer, self.name) + color.cyan + msg + color.end
+            data = strEncode(msg1)
+            clients[target].send(data)
+            
+            msg2 = "[{} to {}] ".format(timer, target) + color.purple + msg + color.end
+            data = strEncode(msg2)
+        elif (target in name) and (target not in clients): # offline message
+            msg = "[{} from {}] ".format(timer, self.name) + color.yellow + msg + color.end
+            if target in unsend:
+                unsend_msg[target] += '\n'
+                unsend_msg[target] += msg
+            else:
+                unsend.append(target)
+                unsend_msg[target] = msg
+            data = strEncode("Leave message to {}".format(target))
         else:
             data = strEncode(target+" is not exist")
         self.csocket.send(data)
+
+    def msgUnsend(self):
+        if self.name in unsend:
+            data = strEncode(unsend_msg[self.name])			
+            delIndex = unsend.index(self.name)
+            del unsend[delIndex]
+            del unsend_msg[self.name]
+        else:
+            data = strEncode("No message")
+        self.csocket.send(data)
+    
+    def fileSend(self, data):
+        command, target, fileName = data.split()
+        if (target in name) and (target in clients):
+            data = strEncode("[*] file from {}, accept it or not? (y/n)".format(self.name))
+            clients[target].send(data)
+            
+            #data = clients[target].recv(1024)
+            #print (data)
+            
+            data = strEncode("waiting for reply...")
+        else:
+            data = strEncode(target+" is offline, or not exist")
+        self.csocket.send(data)    
 
 if __name__ == "__main__":
     host = "0.0.0.0"
@@ -200,8 +245,8 @@ if __name__ == "__main__":
             tcpsock.listen(4)
             (clientsock, (ip, port)) = tcpsock.accept()
 
-            #pass clientsock to the ClientThread thread object being created
-            newthread = ClientThread(ip, port, clientsock)
+            #pass clientsock to the ServerThread thread object being created
+            newthread = ServerThread(ip, port, clientsock)
             newthread.start()
     except KeyboardInterrupt as msg:
         stderr.write("%s\n" % msg)
