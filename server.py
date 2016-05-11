@@ -2,13 +2,15 @@
 
 import socket, threading
 from sys import stderr
-from time import localtime, strftime
+from time import localtime, strftime, sleep
 
 clients = {} # 紀錄client socket連線
 chatwith = {} # 紀錄client訊息對象
+
 friend = {} # 紀錄client friend list
 unsend = []
 unsend_msg = {}
+unsend_file = {}
 
 name = {'amy', 'john', 'tom'}
 pwd = {'amy':'123', 'john':'456', 'tom':'789'}
@@ -71,6 +73,16 @@ def rmName(string, target):
                 strList += name[i]           
     return strList
 
+def recvFile(sock, target):
+    buf = ""
+    while True:
+        data = sock.recv(1024)
+        #print (data)
+        clients[target].send(data)
+        if data == b'EOF':
+            break
+        #buf += data
+
 class ServerThread(threading.Thread):
 
     def __init__(self,ip,port,clientsocket):
@@ -103,22 +115,60 @@ class ServerThread(threading.Thread):
                 command = self.csocket.recv(2048)
                 data = strDecode(command)
                 print(self.name +' send command: '+data)
-
-                if data[:6] == 'friend':
-                    self.friendList(data)
-                elif data[:8] == 'sendfile':
-                    self.fileSend(data)
-                elif data[:4] == 'send':
-                    self.msgSend(data)
-                elif data == 'check msg':
-                    self.msgUnsend()
-                elif data[:4] == 'exit':
-                    data = strEncode(color.blue+'Good bye'+color.end)
-                    self.csocket.send(data)
-                    break
+                
+                if self.name in chatwith:
+                    index = chatwith[self.name]
+                    if data == 'y' or data == 'yes':  # [4] reply yes
+                        msg1 = strEncode("[5] Start transmiting file \"{}\"...".format(unsend_file[index]))
+                        clients[chatwith[self.name]].send(msg1)
+                        msg2 = strEncode("[6] Start receiving file \"{}\" from {}".format(unsend_file[index], chatwith[self.name]))
+                        self.csocket.send(msg2)
+                        print('')
+                    elif data == 'start':
+                        print ('[FILE] start upload')
+                        recvFile(self.csocket, chatwith[self.name])
+                        print ('[FILe] complete')
+                        del chatwith[index]
+                        del chatwith[self.name]
+                        del unsend_file[self.name]
+                    elif data == 'n' or data == 'no': # [4] reply no
+                        print ('Refused')
+                        msg1 = strEncode("[END] Reply for " + chatwith[self.name])
+                        self.csocket.send(msg1)
+                        msg2 = strEncode("[END] Denied from " + self.name)
+                        clients[chatwith[self.name]].send(msg2)
+                        #print (chatwith[index])
+                        #print (chatwith[self.name])
+                        del chatwith[index]
+                        del chatwith[self.name]
+                        del unsend_file[self.name]
+                    elif data == "quit":
+                        del chatwith[index]
+                        del chatwith[self.name]
+                        if index in unsend_file:
+                            del unsend_file[index]
+                        elif self.name in unsend_file:
+                            del unsend_file[self.name]
+                        print ('[FILE] quit')
+                    else:
+                        data = strEncode('Error command')
+                        self.csocket.send(data)
                 else:
-                    data = strEncode('Error command')
-                    self.csocket.send(data)
+                    if data[:6] == 'friend':
+                        self.friendList(data)
+                    elif data[:8] == 'sendfile':
+                        self.fileSend(data)
+                    elif data[:4] == 'send':
+                        self.msgSend(data)
+                    elif data == 'check msg':
+                        self.msgUnsend()
+                    elif data[:4] == 'exit':
+                        data = strEncode(color.blue+'Good bye'+color.end)
+                        self.csocket.send(data)
+                        break
+                    else:
+                        data = strEncode('Error command')
+                        self.csocket.send(data)
                 
             del clients[self.name]
             print (color.red+"[OFF] %s Logout"% (self.name)+color.end)
@@ -136,7 +186,7 @@ class ServerThread(threading.Thread):
         inputPWD = strDecode(inputPWD)
         print ("Client(%s:%s) password : %s"%(self.ip, str(self.port), inputPWD))
         
-        if (inputName in name) and (pwd[inputName] == inputPWD):
+        if (inputName in name) and (pwd[inputName] == inputPWD) and (inputName not in clients):
             print(color.green+'[ON] %s Login Success'%(inputName)+color.end)
             clients[self.name] = self.csocket
             return "Success"
@@ -210,16 +260,19 @@ class ServerThread(threading.Thread):
     
     def fileSend(self, data):
         command, target, fileName = data.split()
-        if (target in name) and (target in clients):
-            data = strEncode("[*] file from {}, accept it or not? (y/n)".format(self.name))
-            clients[target].send(data)
-            
-            #data = clients[target].recv(1024)
-            #print (data)
-            
-            data = strEncode("waiting for reply...")
+        if (target in chatwith) or (self.name in chatwith):
+            data = strEncode(target+" is busy. Try again later!")
         else:
-            data = strEncode(target+" is offline, or not exist")
+            if (target in name) and (target in clients):
+                data = strEncode("[3] file \"{}\" from {}, accept it or not? (y/n)".format(fileName, self.name))
+                clients[target].send(data)
+                chatwith[target] = self.name
+                chatwith[self.name] = target
+                unsend_file[self.name] = fileName
+            
+                data = strEncode("[2] waiting for reply...")
+            else:
+                data = strEncode(target+" is offline, or not exist")
         self.csocket.send(data)    
 
 if __name__ == "__main__":
