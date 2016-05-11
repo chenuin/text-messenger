@@ -8,6 +8,7 @@ import threading
 import socket
 import getpass
 import time
+import os
 
 class color:
     end =  "\033[0m"
@@ -51,15 +52,25 @@ def sendFile(sock, fileName):
     except Exception as msg:
         sys.stderr.write("%s\n" % msg)
     else:
-        while True:   
+        total = os.path.getsize(fileName)
+        n = 0
+        while True:
             data = sfile.read(1024)
             if not data:   
                 break
             while len(data) > 0:   
                 intSent = sock.send(data)
-                data = data[intSent:]  
-  
-    time.sleep(3)
+                data = data[intSent:]
+
+            n += 1024
+            percent = int((n/total)*100)
+            if percent > 100:
+                percent = 100
+            bar = int(percent/5)
+            print ('['+'*'*bar +' '*(20-bar)+'] {}%\r'.format(percent), end = " ")
+            time.sleep(0.005)
+    print()
+    time.sleep(2)
     data = strEncode('EOF')
     sock.sendall(data)
     
@@ -68,15 +79,19 @@ def sendFile(sock, fileName):
 def recvFile(sock, fileName):
     tmpName = fileName.split('.')
     saveName = str(time.time()) + "." + tmpName[1]
-    f = open(saveName, 'wb')   
+    f = open(saveName, 'wb')
+    n = 0
     while True:   
         data = sock.recv(1024)
         #print (data)
         if data == b'EOF':
             break
         
-        f.write(data)   
+        f.write(data)
+        n += len(data)
+        print ('Recieve: {} Bytes\r'.format(n), end=" ")
                            
+    print()
     f.flush()   
     f.close()   
   
@@ -151,7 +166,7 @@ class ClientThread(object):
         # Server reply login result
         recvData = self.socket.recv(1024)
         recvData = strDecode(recvData)
-        print (recvData)
+        #print (recvData)
         if recvData == "Success":
             return 1
         else:
