@@ -141,7 +141,7 @@ class ServerThread(threading.Thread):
                         #print (chatwith[self.name])
                         del chatwith[index]
                         del chatwith[self.name]
-                        del unsend_file[self.name]
+                        del unsend_file[index]
                     elif data == "quit":
                         del chatwith[index]
                         del chatwith[self.name]
