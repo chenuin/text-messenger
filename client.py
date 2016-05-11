@@ -7,6 +7,7 @@ import sys
 import threading
 import socket
 import getpass
+import time
 
 class color:
     end =  "\033[0m"
@@ -44,6 +45,43 @@ def printStatus(string):
                 break;
             print(" {0:10} : offline".format(offList[i]))
 
+def sendFile(sock, fileName):
+    try:
+        sfile = open(fileName, 'rb')
+    except Exception as msg:
+        sys.stderr.write("%s\n" % msg)
+    else:
+        while True:   
+            data = sfile.read(1024)
+            if not data:   
+                break
+            while len(data) > 0:   
+                intSent = sock.send(data)
+                data = data[intSent:]  
+  
+    time.sleep(3)
+    data = strEncode('EOF')
+    sock.sendall(data)
+    
+    print ('[END] Transmission finish')
+
+def recvFile(sock, fileName):
+    tmpName = fileName.split('.')
+    saveName = str(time.time()) + "." + tmpName[1]
+    f = open(saveName, 'wb')   
+    while True:   
+        data = sock.recv(1024)
+        #print (data)
+        if data == b'EOF':
+            break
+        
+        f.write(data)   
+                           
+    f.flush()   
+    f.close()   
+  
+    print ('[END] Download finish')
+
 def Send(sock, test):
     while True:
         data = input('> ')
@@ -60,6 +98,15 @@ def Recv(sock, test):
             printStatus(data[2:])
         else:
             print (data)
+        if data[:3] == "[5]":       # data = [5] start transmit
+            buf1, fileName, buf2 = data.split('"')
+            #print (fileName)
+            data = strEncode("start")
+            sock.send(data)
+            sendFile(sock, fileName)
+        elif data[:3] == "[6]":     # data = [6] start receive
+            buf1, fileName, buf2 = data.split('"')
+            recvFile(sock, fileName)
         if data == color.blue+'Good bye'+color.end:
             sock.close()
             break
@@ -77,7 +124,7 @@ class ClientThread(object):
         
         # Server reply(welcome)
         recvData = self.socket.recv(1024)
-        print ("%s"%strDecode(recvData))
+        #print ("%s"%strDecode(recvData))
         
         # login
         if self.login():
@@ -113,9 +160,11 @@ class ClientThread(object):
 if __name__ == "__main__":
     host = "0.0.0.0"
     port = 9999
-    
-    clientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    clientSock.connect((host,port))
-
-    netClient = ClientThread(clientSock)
-    netClient.tcpclient()
+    try:
+        clientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientSock.connect((host,port))
+        
+        netClient = ClientThread(clientSock)
+        netClient.tcpclient()
+    except Exception as msg:
+        sys.stderr.write("%s\n" % msg)
