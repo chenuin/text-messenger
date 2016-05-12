@@ -67,14 +67,14 @@ def sendFile(sock, fileName):
             if percent > 100:
                 percent = 100
             bar = int(percent/5)
-            print ('['+'*'*bar +' '*(20-bar)+'] {}%\r'.format(percent), end = " ")
+            print (' ['+'*'*bar +' '*(20-bar)+'] {}%\r'.format(percent), end = " ")
             time.sleep(0.005)
     print()
     time.sleep(2)
     data = strEncode('EOF')
     sock.sendall(data)
     
-    print ('[END] Transmission finish')
+    print (color.yellow + '[END] Transmission finish' + color.end)
 
 def recvFile(sock, fileName):
     tmpName = fileName.split('.')
@@ -95,7 +95,7 @@ def recvFile(sock, fileName):
     f.flush()   
     f.close()   
   
-    print ('[END] Download finish')
+    print (color.yellow + '[END] Download finish' + color.end)
 
 def Send(sock, test):
     while True:
