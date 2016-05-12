@@ -133,9 +133,9 @@ class ServerThread(threading.Thread):
                         del unsend_file[self.name]
                     elif data == 'n' or data == 'no': # [4] reply no
                         print ('Refused')
-                        msg1 = strEncode("[END] Reply for " + chatwith[self.name])
+                        msg1 = strEncode(color.yellow + "[END] Reply for " + chatwith[self.name] + color.end)
                         self.csocket.send(msg1)
-                        msg2 = strEncode("[END] Denied from " + self.name)
+                        msg2 = strEncode(color.yellow + "[END] Denied from " + self.name + color.end)
                         clients[chatwith[self.name]].send(msg2)
                         #print (chatwith[index])
                         #print (chatwith[self.name])
@@ -143,6 +143,9 @@ class ServerThread(threading.Thread):
                         del chatwith[self.name]
                         del unsend_file[index]
                     elif data == "quit":
+                        msg = strEncode(color.yellow + "[END] quit" + color.end)
+                        self.csocket.send(msg)
+                        clients[index].send(msg)
                         del chatwith[index]
                         del chatwith[self.name]
                         if index in unsend_file:
