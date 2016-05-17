@@ -1,4 +1,4 @@
-#!/usr/bin/env python  
+#!/usr/bin/env python  3
 # -*- coding:utf8 -*-  
   
 import sys  
@@ -37,6 +37,7 @@ def printStatus(string):
 
         onList = strON.split(",")
         offList = strOFF.split(",")
+        sys.stdout.write('\b\b')
         for i in range(0, len(onList), 1):
             if onList[i] == "":
                 break;
@@ -45,6 +46,7 @@ def printStatus(string):
             if offList[i] == "":
                 break;
             print(" {0:10} : offline".format(offList[i]))
+        sys.stdout.write('\n> ')
 
 def sendFile(sock, fileName):
     try:
@@ -112,7 +114,7 @@ def Recv(sock, test):
         if data[:2] == "::":
             printStatus(data[2:])
         else:
-            print (data)
+            sys.stdout.write("\b\b" + data + "\n> ")
         if data[:3] == "[5]":       # data = [5] start transmit
             buf1, fileName, buf2 = data.split('"')
             #print (fileName)
