@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import socket, threading
+import socket, threading, pymysql
 from sys import stderr
 from time import localtime, strftime, sleep
 
@@ -12,8 +12,8 @@ unsend = []
 unsend_msg = {}
 unsend_file = {}
 
-name = {'amy', 'john', 'tom'}
-pwd = {'amy':'123', 'john':'456', 'tom':'789'}
+name = []
+pwd = {}
 
 def strDecode(string):
     bytes_str = string.decode('utf-8', "replace")
@@ -284,6 +284,29 @@ if __name__ == "__main__":
 
     tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    db = pymysql.connect("mysql.cs.ccu.edu.tw", "cyy100u", "mazu#crc!", "cyy100u_msg")
+    cursor = db.cursor()
+    
+    try:
+        cursor.execute("SELECT * FROM user")
+        result = cursor.fetchall()
+        print ("Connect with Mysql")
+        
+        for row in result:
+            nid = row[0]
+            tmp_name = row[1]
+            tmp_pwd = row[2]
+            
+            name.append(tmp_name)
+            pwd[tmp_name] = tmp_pwd
+            
+            print ("name: {0:10} pwd: {1:10}".format(row[1], row[2]))
+        print()
+    except:
+        print("MySQL Connect fail. Use Default account...\n")
+        name = ['amy', 'john', 'tom']
+        pwd = {'amy':'123', 'john':'456', 'tom':'789'}
 
     try:
         tcpsock.bind((host,port))
