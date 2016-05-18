@@ -165,6 +165,8 @@ class ServerThread(threading.Thread):
                             talkwith[self.name].send(strEncode(data))
                             del talkwith[self.name]
                         else:
+                            timer = strftime("%Y-%m-%d %H:%M:%S", localtime())
+                            data = "[{} from {}] ".format(timer, self.name) + color.cyan + data + color.end
                             talkwith[self.name].send(strEncode(data))
                 else:
                     if data[:6] == 'friend':
