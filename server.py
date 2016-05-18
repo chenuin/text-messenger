@@ -5,7 +5,8 @@ from sys import stderr
 from time import localtime, strftime, sleep
 
 clients = {} # 紀錄client socket連線
-chatwith = {} # 紀錄client訊息對象
+talkwith = {} # 紀錄client訊息對象
+chatwith = {}
 
 friend = {} # 紀錄client friend list
 unsend = []
@@ -156,6 +157,15 @@ class ServerThread(threading.Thread):
                     else:
                         data = strEncode('Error command')
                         self.csocket.send(data)
+                elif self.name in talkwith:
+                        if data == 'quit':
+                            data = "==== finish ====="
+                            self.csocket.send(strEncode(data))
+                            data = "Talk from " + self.name + " finish"
+                            talkwith[self.name].send(strEncode(data))
+                            del talkwith[self.name]
+                        else:
+                            talkwith[self.name].send(strEncode(data))
                 else:
                     if data[:6] == 'friend':
                         self.friendList(data)
@@ -163,6 +173,8 @@ class ServerThread(threading.Thread):
                         self.fileSend(data)
                     elif data[:4] == 'send':
                         self.msgSend(data)
+                    elif data[:4] == 'talk':
+                        self.msgTalk(data)
                     elif data == 'check msg':
                         self.msgUnsend()
                     elif data[:4] == 'exit':
@@ -261,6 +273,16 @@ class ServerThread(threading.Thread):
             data = strEncode("No message")
         self.csocket.send(data)
     
+    def msgTalk(self, data):
+        command, target = data.split()
+        if target not in clients:
+            data = strEncode(target+" is offline or not exist")
+        else:
+            talkwith[self.name] = clients[target]
+            data = strEncode("====talk mode====")
+            
+        self.csocket.send(data)
+
     def fileSend(self, data):
         command, target, fileName = data.split()
         if (target in chatwith) or (self.name in chatwith):
