@@ -41,11 +41,11 @@ def printStatus(string):
         for i in range(0, len(onList), 1):
             if onList[i] == "":
                 break;
-            print(" {0:10} : online".format(onList[i]))
+            print(" {0:10} : ".format(onList[i]) + color.green + "online" + color.end)
         for i in range(0, len(offList), 1):
             if offList[i] == "":
                 break;
-            print(" {0:10} : offline".format(offList[i]))
+            print(" {0:10} : ".format(offList[i]) + color.red + "offline" + color.end)
         sys.stdout.write('\n> ')
 
 def sendFile(sock, fileName):
@@ -76,7 +76,7 @@ def sendFile(sock, fileName):
     data = strEncode('EOF')
     sock.sendall(data)
     
-    print (color.yellow + '[END] Transmission finish' + color.end)
+    sys.stdout.write (color.yellow + '[END] Transmission finish' + color.end + '\n> ')
 
 def recvFile(sock, fileName):
     tmpName = fileName.split('.')
@@ -97,7 +97,7 @@ def recvFile(sock, fileName):
     f.flush()   
     f.close()   
   
-    print (color.yellow + '[END] Download finish' + color.end)
+    sys.stdout.write(color.yellow + '[END] Download finish' + color.end + '\n> ')
 
 def Send(sock, test):
     while True:
