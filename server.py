@@ -267,7 +267,7 @@ class ServerThread(threading.Thread):
             data = strEncode(target+" is busy. Try again later!")
         else:
             if (target in name) and (target in clients):
-                data = strEncode("[3] file \"{}\" from {}, accept it or not? (y/n)".format(fileName, self.name))
+                data = strEncode("[3] " + color.yellow + "file \"{}\" from {}, accept it or not? (y/n)".format(fileName, self.name) + color.end)
                 clients[target].send(data)
                 chatwith[target] = self.name
                 chatwith[self.name] = target
